@@ -20,7 +20,7 @@ jobs: # Trabajos
         uses: actions/checkout@v4 # Checkout
 
       - name: Preparar reportes # Crear directorio
-        run: mkdir -p reports # Carpeta de resultados
+        run: mkdir -p reports && chmod 777 reports # Permisos de escritura
 
       - name: Ejecutar Bearer SARIF # Análisis SARIF
         run: docker run --rm -v "$PWD:/tmp/scan" bearer/bearer:latest-amd64 scan /tmp/scan --format sarif --output /tmp/scan/reports/bearer.sarif --exit-code 0 # Generar SARIF
