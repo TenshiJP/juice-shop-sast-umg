@@ -1,0 +1,43 @@
+
+name: Analisis SAST UMG # Nombre del workflow
+on: # Eventos
+  push: # Cambios publicados
+    branches: [main] # Rama principal
+  pull_request: # Solicitudes de integración
+    branches: [main] # Rama destino
+  workflow_dispatch: {} # Ejecución manual
+
+permissions: # Permisos
+  contents: read # Lectura del código
+  security-events: write # Publicación SARIF
+
+jobs: # Trabajos
+  sast: # Análisis SAST
+    name: Escaneo de seguridad # Nombre del trabajo
+    runs-on: ubuntu-latest # Entorno Linux
+    steps: # Pasos de trabajo
+      - name: Descargar repositorio # Obtener código
+        uses: actions/checkout@v4 # Checkout
+
+      - name: Preparar reportes # Crear directorio
+        run: mkdir -p reports # Carpeta de resultados
+
+      - name: Ejecutar Bearer SARIF # Análisis SARIF
+        run: docker run --rm -v "$PWD:/tmp/scan" bearer/bearer:latest-amd64 scan /tmp/scan --format sarif --output /tmp/scan/reports/bearer.sarif --exit-code 0 # Generar SARIF
+
+      - name: Ejecutar Bearer HTML # Análisis HTML
+        run: docker run --rm -v "$PWD:/tmp/scan" bearer/bearer:latest-amd64 scan /tmp/scan --format html --output /tmp/scan/reports/bearer.html --exit-code 0 # Generar HTML
+
+      - name: Publicar SARIF # Subir resultados
+        if: ${{ always() && hashFiles('reports/bearer.sarif') != '' }} # Si existe SARIF
+        uses: github/codeql-action/upload-sarif@v4 # Code Scanning
+        with: # Parámetros
+          sarif_file: reports/bearer.sarif # Archivo SARIF
+          category: bearer-sast # Categoría
+
+      - name: Guardar reporte HTML # Publicar artefacto
+        if: ${{ always() && hashFiles('reports/bearer.html') != '' }} # Si existe HTML
+        uses: actions/upload-artifact@v4 # Subir artefacto
+        with: # Parámetros
+          name: bearer-html-report # Nombre
+          path: reports/bearer.html # Archivo HTML
